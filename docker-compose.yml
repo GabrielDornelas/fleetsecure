@@ -1,0 +1,90 @@
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: ${DB_NAME:-fleetsecure}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  localstack:
+    image: localstack/localstack:0.14
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=s3
+      - DEBUG=1
+      - DATA_DIR=/tmp/localstack/data
+    volumes:
+      - localstack_data:/tmp/localstack
+
+  backend:
+    build: ./backend
+    command: >
+      sh -c "sleep 10 &&
+             python manage.py makemigrations &&
+             python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - ./backend:/app
+      - media_data:/app/media
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - AWS_ENDPOINT_URL=http://localstack:4566
+      - AWS_STORAGE_BUCKET_NAME=fleetsecure
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - DB_HOST=db
+      - DB_NAME=${DB_NAME:-fleetsecure}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - DB_PORT=5432
+    depends_on:
+      - db
+      - redis
+      - localstack
+
+  backend-test:
+    build: ./backend
+    command: >
+      sh -c "sleep 10 &&
+             python -m pytest"
+    volumes:
+      - ./backend:/app
+      - media_data:/app/media
+    env_file:
+      - .env
+    environment:
+      - DJANGO_SETTINGS_MODULE=fleetsecure.settings
+      - AWS_ENDPOINT_URL=http://localstack:4566
+      - AWS_STORAGE_BUCKET_NAME=fleetsecure
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - DB_HOST=db
+      - DB_NAME=${DB_NAME:-fleetsecure_test}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - DB_PORT=5432
+    depends_on:
+      - db
+      - redis
+      - localstack
+
+volumes:
+  pgdata:
+  media_data:
+  redis_data:
+  localstack_data:

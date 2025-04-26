@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+__pycache__/*
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+
+# Coverage
+htmlcov/
+.coverage
+.tox/
+
+# Pytest
+.cache/
+backend/.pytest_cache/
+backend/.coverage
+
+# Redis dump
+dump.rdb
+
+# LocalStack
+.localstack/
+
+# Env
+.env
+
+# Django
+*.log
+db.sqlite3
+media/
+staticfiles/
+
+# Docker
+*.pid
+*.tar
+*.log
+*.bak
+
+venv/
+codealike.json

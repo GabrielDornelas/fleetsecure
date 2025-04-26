@@ -33,7 +33,6 @@ api_v1_patterns = [
     path('auth/logout/', TokenBlacklistView.as_view(), name='token_blacklist'),
     
     path('', include('users.urls')),
-    path('', include('drivers.urls')),
     path('', include('trucks.urls')),
 ]
 
@@ -46,6 +45,6 @@ urlpatterns = [
     path('api/token/refresh/', TokenRefreshView.as_view(), name='legacy_token_refresh'),
 ]
 
-# Adiciona URLs para servir arquivos de mídia em desenvolvimento
+# Add URLs to serve media files in development
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

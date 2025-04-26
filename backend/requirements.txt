@@ -15,3 +15,5 @@ pytest
 pytest-django
 pytest-cov
 coverage
+dj-database-url
+gunicorn

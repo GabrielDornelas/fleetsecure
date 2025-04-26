@@ -13,7 +13,7 @@ class UserSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'username', 'email', 'first_name', 'last_name', 'full_name',
             'cpf', 'phone_number', 'date_of_birth', 'profile_picture',
-            'is_active', 'is_admin', 'is_driver'
+            'is_active', 'is_admin', 'is_driver', 'license_number'
         ]
         read_only_fields = ['id', 'is_active', 'is_driver']
     
@@ -33,7 +33,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
         fields = [
             'username', 'email', 'password', 'password_confirm',
             'first_name', 'last_name', 'cpf', 'phone_number', 
-            'date_of_birth', 'profile_picture', 'is_admin'
+            'date_of_birth', 'profile_picture', 'is_admin', 'license_number'
         ]
     
     def validate(self, attrs):
@@ -51,6 +51,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
             phone_number=validated_data.get('phone_number'),
             date_of_birth=validated_data.get('date_of_birth'),
             profile_picture=validated_data.get('profile_picture'),
+            license_number=validated_data.get('license_number'),
             is_admin=validated_data.get('is_admin', False)
         )
         user.set_password(validated_data['password'])

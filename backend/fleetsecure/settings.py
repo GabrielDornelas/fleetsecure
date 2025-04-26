@@ -14,6 +14,7 @@ from decouple import config
 from pathlib import Path
 from datetime import timedelta
 import os
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -23,12 +24,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-zj5d)cm#1-pl-c&!ra)!+$%)7yz@0n_r3m)c@c8ro%#q9nj*81'
+SECRET_KEY = config('SECRET_KEY', default='django-insecure-zj5d)cm#1-pl-c&!ra)!+$%)7yz@0n_r3m)c@c8ro%#q9nj*81')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.vercel.app']
 
 
 # Application definition
@@ -47,7 +48,6 @@ INSTALLED_APPS = [
     'corsheaders',
     'storages',
     'users',
-    'drivers',
     'trucks',
 ]
 
@@ -103,16 +103,26 @@ WSGI_APPLICATION = 'fleetsecure.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('DB_NAME', default='fleetdb'),
-        'USER': config('DB_USER', default='fleetuser'),
-        'PASSWORD': config('DB_PASSWORD', default='fleetpass'),
-        'HOST': config('DB_HOST', default='db'),
-        'PORT': config('DB_PORT', default='5432'),
+# Database configuration - Primeiro tenta usar DATABASE_URL (para Neon), depois configuração separada
+if config('DATABASE_URL', default=None):
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=config('DATABASE_URL'),
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': config('DB_NAME', default='fleetdb'),
+            'USER': config('DB_USER', default='fleetuser'),
+            'PASSWORD': config('DB_PASSWORD', default='fleetpass'),
+            'HOST': config('DB_HOST', default='db'),
+            'PORT': config('DB_PORT', default='5432'),
+        }
+    }
 
 
 # Password validation
@@ -149,7 +159,7 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Media files (User Uploads)
@@ -163,24 +173,35 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'users.User'
 
-# Redis Configuration
-REDIS_HOST = config('REDIS_HOST', default='redis')
-REDIS_PORT = config('REDIS_PORT', default=6379, cast=int)
-
-CACHES = {
-    'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': f'redis://{REDIS_HOST}:{REDIS_PORT}/1',
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+# Redis Configuration - Suporte para Upstash Redis URL
+REDIS_URL = config('REDIS_URL', default=None)
+if REDIS_URL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': REDIS_URL,
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            }
         }
     }
-}
+else:
+    REDIS_HOST = config('REDIS_HOST', default='redis')
+    REDIS_PORT = config('REDIS_PORT', default=6379, cast=int)
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': f'redis://{REDIS_HOST}:{REDIS_PORT}/1',
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            }
+        }
+    }
 
-# JWT Configuration with Redis
+# JWT Configuration com Redis
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=config('JWT_ACCESS_TOKEN_LIFETIME', default=60, cast=int)),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=config('JWT_REFRESH_TOKEN_LIFETIME', default=1, cast=int)),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
     'AUTH_HEADER_TYPES': ('Bearer',),
@@ -188,7 +209,13 @@ SIMPLE_JWT = {
     'TOKEN_TYPE_CLAIM': 'token_type',
 }
 
-# Configure S3 storage only if AWS settings are provided
+# CORS configuration
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "https://fleetsecure.vercel.app",
+]
+
+# Configure S3 storage para produção ou LocalStack para desenvolvimento
 if config('USE_S3', default=True, cast=bool):
     DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
     
@@ -196,29 +223,51 @@ if config('USE_S3', default=True, cast=bool):
     AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID', default='test')
     AWS_SECRET_ACCESS_KEY = config('AWS_SECRET_ACCESS_KEY', default='test')
     AWS_STORAGE_BUCKET_NAME = config('AWS_STORAGE_BUCKET_NAME', default='fleetsecure')
-    AWS_S3_ENDPOINT_URL = config('AWS_ENDPOINT_URL', default='http://localstack:4566')
+    AWS_S3_ENDPOINT_URL = config('AWS_ENDPOINT_URL', default=None)
     AWS_S3_REGION_NAME = config('AWS_S3_REGION_NAME', default='us-east-1')
     AWS_S3_SIGNATURE_VERSION = 's3v4'
-    AWS_DEFAULT_ACL = 'public-read'
-    AWS_QUERYSTRING_AUTH = False
     AWS_S3_FILE_OVERWRITE = False
-    
-    # Try to initialize S3 bucket
-    try:
-        from utils.s3_init import create_s3_bucket
-        create_s3_bucket()
-    except Exception as e:
-        print(f"Warning: Failed to initialize S3 bucket: {e}")
-else:
-    # Use local file storage instead
-    MEDIA_URL = '/media/'
-    MEDIA_ROOT = BASE_DIR / 'media'
+    AWS_DEFAULT_ACL = None
+    AWS_S3_VERIFY = True
 
-# CORS Settings
-CORS_ALLOW_ALL_ORIGINS = config('CORS_ALLOW_ALL_ORIGINS', default=True, cast=bool)
-CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='http://localhost:3000', cast=lambda v: [s.strip() for s in v.split(',')])
+# Configurações de segurança para produção
+if not DEBUG:
+    SECURE_BROWSER_XSS_FILTER = True
+    X_FRAME_OPTIONS = 'DENY'
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 31536000  # 1 ano
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-# Security settings
-SECURE_CONTENT_TYPE_NOSNIFF = True
-SECURE_BROWSER_XSS_FILTER = True
-X_FRAME_OPTIONS = 'DENY'
+# Configuração para logging
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}

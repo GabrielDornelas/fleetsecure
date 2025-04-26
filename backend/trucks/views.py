@@ -12,18 +12,18 @@ class TruckViewSet(viewsets.ModelViewSet):
     serializer_class = TruckSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['driver', 'year', 'model']
+    filterset_fields = ['user', 'year', 'model']
     search_fields = ['plate_number', 'model']
-    ordering_fields = ['year', 'driver__user__first_name']
+    ordering_fields = ['year', 'user__first_name']
     
     @action(detail=False)
-    def by_driver(self, request):
-        driver_id = request.query_params.get('driver_id')
-        if driver_id:
-            trucks = Truck.objects.filter(driver_id=driver_id)
+    def by_user(self, request):
+        user_id = request.query_params.get('user_id')
+        if user_id:
+            trucks = Truck.objects.filter(user_id=user_id)
             serializer = self.get_serializer(trucks, many=True)
             return Response(serializer.data)
-        return Response({"error": "driver_id parameter is required"}, status=400)
+        return Response({"error": "user_id parameter is required"}, status=400)
     
     @action(detail=False)
     def by_year(self, request):

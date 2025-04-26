@@ -1,81 +1,136 @@
-# FleetSecure
+# FleetSecure - Sistema de Gerenciamento de Frota
 
-A Django-based application for managing fleet drivers and trucks.
+FleetSecure é uma aplicação completa para gerenciamento de motoristas e caminhões de frotas, desenvolvida com Django REST Framework no backend e Next.js no frontend.
 
-## Features
+## Recursos
 
-- **User Authentication**: JWT-based authentication with token blacklisting
-- **Driver Management**: Create, update, and track drivers
-- **Truck Management**: Assign trucks to drivers, track vehicle information
-- **AWS S3 Integration**: Store profile pictures and documents in S3
-- **Redis Integration**: For JWT token storage and caching
-- **Security Features**: Rate limiting, secure headers, permission-based access control
+- **Autenticação de Usuários**: Sistema JWT com refresh tokens e blacklisting
+- **Gerenciamento de Usuários/Motoristas**: Cadastro, atualização e remoção
+- **Gerenciamento de Caminhões**: Atribuição a motoristas, tracking de informações
+- **API RESTful**: Endpoints bem documentados para integração
+- **Testes Automatizados**: Testes de unidade, integração e end-to-end
 
-## Technical Stack
+## Stack Tecnológica
 
-- **Back end**: Django + Django REST Framework
-- **Database**: PostgreSQL
-- **Cache**: Redis
-- **Storage**: AWS S3 (or LocalStack S3 for development)
-- **Authentication**: JWT with token refresh
-- **Docker**: Containerized deployment
+### Backend
+
+- **Framework**: Django + Django REST Framework
+- **Banco de Dados**: PostgreSQL (Neon)
+- **Cache**: Redis (Upstash)
+- **Armazenamento**: AWS S3
+- **Autenticação**: JWT
+- **Contêineres**: Docker
+
+### Frontend
+
+- **Framework**: Next.js (React)
+- **Estilização**: Tailwind CSS
+- **Gerenciamento de Estado**: React Query
+- **Formulários**: React Hook Form
+- **Testes E2E**: Playwright
+
+### DevOps
+
+- **CI/CD**: GitHub Actions
+- **Hospedagem**: Vercel (frontend + backend)
+- **Monitoramento**: Sentry
+
+## Como Executar o Projeto
+
+### Requisitos
+
+- Docker e Docker Compose
+- Node.js 16+
+- Python 3.9+
+
+### Backend (com Docker)
+
+```bash
+# Executar o backend com Docker Compose
+docker-compose up
+```
+
+### Frontend
+
+```bash
+# Instalar dependências
+cd frontend
+npm install
+
+# Executar em modo de desenvolvimento
+npm run dev
+```
+
+### Testes
+
+```bash
+# Testes de Backend
+docker-compose run backend-test
+
+# Testes de Frontend
+cd frontend
+npm test
+
+# Testes E2E
+cd frontend
+npm run test:e2e
+```
+
+## Estrutura do Projeto
+
+```
+fleetsecure/
+├── backend/             # API Django
+│   ├── fleetsecure/     # Configurações do projeto
+│   ├── trucks/          # App de caminhões
+│   ├── users/           # App de usuários
+│   ├── tests/           # Testes de integração
+│   └── utils/           # Utilitários
+├── frontend/            # Aplicação Next.js
+│   ├── src/
+│   │   ├── pages/       # Páginas do Next.js
+│   │   ├── components/  # Componentes React
+│   │   └── styles/      # Estilos CSS
+│   ├── e2e/             # Testes E2E com Playwright
+│   └── public/          # Arquivos estáticos
+└── .github/             # Workflows do GitHub Actions
+```
 
 ## API Endpoints
 
-### Authentication
+### Autenticação
 
-- `POST /api/v1/auth/login/`: Login with username/password
-- `POST /api/v1/auth/refresh/`: Refresh JWT token
-- `POST /api/v1/auth/logout/`: Blacklist JWT token
-- `POST /api/v1/auth/verify/`: Verify JWT token
+- `POST /api/v1/auth/login/`: Login com usuário/senha
+- `POST /api/v1/auth/refresh/`: Atualizar token JWT
+- `POST /api/v1/auth/logout/`: Invalidar token JWT
+- `POST /api/v1/auth/verify/`: Verificar token JWT
 
-### Users
+### Usuários
 
-- `GET /api/v1/users/`: List all users (admin only)
-- `POST /api/v1/users/`: Create new user
-- `GET /api/v1/users/{id}/`: Get user details
-- `PATCH /api/v1/users/{id}/`: Update user
-- `DELETE /api/v1/users/{id}/`: Delete user
-- `GET /api/v1/users/me/`: Get current user profile
-- `POST /api/v1/users/{id}/change_password/`: Change password
-- `PATCH /api/v1/users/{id}/activate/`: Activate user (admin)
-- `PATCH /api/v1/users/{id}/deactivate/`: Deactivate user (admin)
+- `GET /api/v1/users/`: Listar todos usuários (admin)
+- `POST /api/v1/users/`: Criar novo usuário
+- `GET /api/v1/users/{id}/`: Obter detalhes do usuário
+- `PATCH /api/v1/users/{id}/`: Atualizar usuário
+- `DELETE /api/v1/users/{id}/`: Excluir usuário
+- `GET /api/v1/users/me/`: Obter perfil do usuário atual
 
-### Drivers
+### Caminhões
 
-- `GET /api/v1/drivers/`: List all drivers
-- `POST /api/v1/drivers/`: Create new driver
-- `GET /api/v1/drivers/{id}/`: Get driver details
-- `PATCH /api/v1/drivers/{id}/`: Update driver
-- `DELETE /api/v1/drivers/{id}/`: Delete driver
-- `GET /api/v1/drivers/me/`: Get current user's driver profile
-- `PATCH /api/v1/drivers/{id}/activate/`: Activate driver
-- `PATCH /api/v1/drivers/{id}/deactivate/`: Deactivate driver
+- `GET /api/v1/trucks/`: Listar todos caminhões
+- `POST /api/v1/trucks/`: Criar novo caminhão
+- `GET /api/v1/trucks/{id}/`: Obter detalhes do caminhão
+- `PATCH /api/v1/trucks/{id}/`: Atualizar caminhão
+- `DELETE /api/v1/trucks/{id}/`: Excluir caminhão
+- `GET /api/v1/trucks/by_user/?user_id=X`: Filtrar caminhões por usuário
 
-### Trucks
+## Deploy
 
-- `GET /api/v1/trucks/`: List all trucks
-- `POST /api/v1/trucks/`: Create new truck
-- `GET /api/v1/trucks/{id}/`: Get truck details
-- `PATCH /api/v1/trucks/{id}/`: Update truck
-- `DELETE /api/v1/trucks/{id}/`: Delete truck
-- `GET /api/v1/trucks/by_driver/?driver_id=X`: Filter trucks by driver
-- `GET /api/v1/trucks/by_year/?year=X`: Filter trucks by year
+O projeto está configurado para deploy automático na Vercel através do GitHub Actions.
 
-## Development Setup
+### Variáveis de Ambiente
 
-### Requirements
+Crie um arquivo `.env` na raiz do projeto (veja `.env.example` para referência).
 
-- Docker
-- Docker Compose
+## Licença
 
-### Getting Started
-
-1. Clone the repository
-2. Create `.env` file (use `.env.example` as template)
-3. Run `docker-compose up --build`
-4. Access the API at `http://localhost:8000/api/v1/`
-
-### Environment Variables
-
-Required environment variables are documented in `.env.example`.
+MIT
